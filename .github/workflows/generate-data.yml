@@ -84,13 +84,10 @@ jobs:
             </div>
             
             <h2>🔗 Quick Access URLs</h2>
-            <pre><code># Download individual files
-wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california_housing_train.csv
-wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california_housing_test.csv
-
-# Download complete archive
-wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california-housing-data.tar.gz
-tar -xzf california-housing-data.tar.gz</code></pre>
+            <pre><code>wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california_housing_train.csv
+        wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california_housing_test.csv
+        wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california-housing-data.tar.gz
+        tar -xzf california-housing-data.tar.gz</code></pre>
             
             <h2>📊 Dataset Information</h2>
             <p><strong>Source:</strong> Scikit-learn California Housing Dataset</p>
