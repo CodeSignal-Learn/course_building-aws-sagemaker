@@ -1,4 +1,4 @@
-name: Generate and Release Data
+name: Generate and Deploy Data
 
 on:
   push:
@@ -8,11 +8,23 @@ on:
       - '.github/workflows/generate-data.yml'
   workflow_dispatch:  # Allow manual trigger
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
-  generate-data:
+  generate-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Required for creating releases
     
     steps:
     - name: Checkout repository
@@ -34,50 +46,79 @@ jobs:
         
     - name: Create data archive
       run: |
-        tar -czf california-housing-data.tar.gz data/
-        ls -lh california-housing-data.tar.gz
+        tar -czf data/california-housing-data.tar.gz data/*.csv
         
-    - name: Upload data as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: california-housing-data
-        path: |
-          data/
-          california-housing-data.tar.gz
-        retention-days: 90
+    - name: Create index page
+      run: |
+        cat > data/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>California Housing Dataset</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; line-height: 1.6; }
+                .download-section { background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin: 1rem 0; }
+                .file-list { list-style: none; padding: 0; }
+                .file-list li { margin: 0.5rem 0; }
+                .file-list a { text-decoration: none; color: #0366d6; font-weight: 500; }
+                .file-list a:hover { text-decoration: underline; }
+                .size { color: #586069; font-size: 0.9em; }
+                pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+                code { background: #f6f8fa; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
+            </style>
+        </head>
+        <body>
+            <h1>🏠 California Housing Dataset</h1>
+            <p>Generated California Housing dataset files for machine learning projects.</p>
+            
+            <div class="download-section">
+                <h2>📥 Download Files</h2>
+                <ul class="file-list">
+                    <li><a href="california_housing.csv">california_housing.csv</a> <span class="size">(~1.8MB, 20,640 rows)</span></li>
+                    <li><a href="california_housing_train.csv">california_housing_train.csv</a> <span class="size">(~1.8MB, 16,512 rows)</span></li>
+                    <li><a href="california_housing_test.csv">california_housing_test.csv</a> <span class="size">(~449KB, 4,128 rows)</span></li>
+                    <li><a href="california-housing-data.tar.gz">california-housing-data.tar.gz</a> <span class="size">(All files archived)</span></li>
+                </ul>
+            </div>
+            
+            <h2>🔗 Quick Access URLs</h2>
+            <pre><code># Download individual files
+wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california_housing_train.csv
+wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california_housing_test.csv
+
+# Download complete archive
+wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california-housing-data.tar.gz
+tar -xzf california-housing-data.tar.gz</code></pre>
+            
+            <h2>📊 Dataset Information</h2>
+            <p><strong>Source:</strong> Scikit-learn California Housing Dataset</p>
+            <p><strong>Target:</strong> Median house value prediction</p>
+            <p><strong>Split:</strong> 80% train / 20% test (random_state=42)</p>
+            
+            <h3>Features</h3>
+            <ul>
+                <li><strong>Original (9 features):</strong> MedInc, HouseAge, AveRooms, AveBedrms, Population, AveOccup, Latitude, Longitude, MedHouseVal</li>
+                <li><strong>Train/Test (10 features):</strong> Original features + RoomsPerHousehold (engineered feature)</li>
+                <li><strong>Preprocessing:</strong> Values capped at 95th percentile (excluding coordinates)</li>
+            </ul>
+            
+            <footer style="margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e1e4e8; color: #586069; font-size: 0.9em;">
+                <p>Generated automatically via GitHub Actions • <a href="https://github.com/CodeSignal-Learn/course_building-aws-sagemaker">View Repository</a></p>
+            </footer>
+        </body>
+        </html>
+        EOF
         
-    - name: Create Release with Assets
-      if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
       with:
-        tag_name: data-v${{ github.run_number }}
-        name: California Housing Data v${{ github.run_number }}
-        body: |
-          🏠 **California Housing Dataset**
-          
-          Generated dataset files:
-          - `california_housing.csv` - Original dataset (**20,640 rows**)
-          - `california_housing_train.csv` - Training set (**16,512 rows**) 
-          - `california_housing_test.csv` - Test set (**4,128 rows**)
-          
-          **Features:**
-          - **Original**: MedInc, HouseAge, AveRooms, AveBedrms, Population, AveOccup, Latitude, Longitude, MedHouseVal
-          - **Train/Test**: Additional `RoomsPerHousehold` feature + capped values at 95th percentile
-          
-          **Usage:**
-          ```bash
-          # Download and extract
-          wget https://github.com/${{ github.repository }}/releases/download/data-v${{ github.run_number }}/california-housing-data.tar.gz
-          tar -xzf california-housing-data.tar.gz
-          ```
-          
-          Generated automatically from commit `${{ github.sha }}`
-        files: |
-          california-housing-data.tar.gz
-          data/california_housing.csv
-          data/california_housing_train.csv
-          data/california_housing_test.csv
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        path: './data'
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4 
