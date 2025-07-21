@@ -1,0 +1,83 @@
+name: Generate and Release Data
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'utils/download_and_preprocess_datasets.py'
+      - '.github/workflows/generate-data.yml'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  generate-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating releases
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas scikit-learn
+        
+    - name: Generate data files
+      run: |
+        python utils/download_and_preprocess_datasets.py
+        
+    - name: Create data archive
+      run: |
+        tar -czf california-housing-data.tar.gz data/
+        ls -lh california-housing-data.tar.gz
+        
+    - name: Upload data as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: california-housing-data
+        path: |
+          data/
+          california-housing-data.tar.gz
+        retention-days: 90
+        
+    - name: Create Release with Assets
+      if: github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: data-v${{ github.run_number }}
+        name: California Housing Data v${{ github.run_number }}
+        body: |
+          🏠 **California Housing Dataset**
+          
+          Generated dataset files:
+          - `california_housing.csv` - Original dataset (**20,640 rows**)
+          - `california_housing_train.csv` - Training set (**16,512 rows**) 
+          - `california_housing_test.csv` - Test set (**4,128 rows**)
+          
+          **Features:**
+          - **Original**: MedInc, HouseAge, AveRooms, AveBedrms, Population, AveOccup, Latitude, Longitude, MedHouseVal
+          - **Train/Test**: Additional `RoomsPerHousehold` feature + capped values at 95th percentile
+          
+          **Usage:**
+          ```bash
+          # Download and extract
+          wget https://github.com/${{ github.repository }}/releases/download/data-v${{ github.run_number }}/california-housing-data.tar.gz
+          tar -xzf california-housing-data.tar.gz
+          ```
+          
+          Generated automatically from commit `${{ github.sha }}`
+        files: |
+          california-housing-data.tar.gz
+          data/california_housing.csv
+          data/california_housing_train.csv
+          data/california_housing_test.csv
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
