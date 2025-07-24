@@ -44,13 +44,14 @@ jobs:
         
     - name: Create source code archive
       run: |
-        # Create a clean source archive excluding .git and other unwanted files
-        tar --exclude='.git' \
-            --exclude='.github' \
+        # Create a clean source archive with only the source files we want
+        tar -czf aws-sagemaker-course-source.tar.gz \
             --exclude='__pycache__' \
             --exclude='*.pyc' \
-            --exclude='california-housing-data.tar.gz' \
-            -czf aws-sagemaker-course-source.tar.gz .
+            *.py \
+            utils/ \
+            requirements.txt \
+            README.md
         ls -lh aws-sagemaker-course-source.tar.gz
         
     - name: Create Release with Data and Source Code
