@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     paths: 
       - 'utils/download_and_preprocess_datasets.py'
-      - '.github/workflows/generate-data.yml'
+      - '.github/workflows/release-and-deploy.yml'
       - '*.py'
       - 'requirements.txt'
   workflow_dispatch:  # Allow manual trigger
