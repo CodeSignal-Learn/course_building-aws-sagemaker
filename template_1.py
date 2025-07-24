@@ -1,7 +1,29 @@
+import os
+import requests
 import sagemaker
 from sagemaker.sklearn.estimator import SKLearn
 from sagemaker.modules.train import ModelTrainer
 from sagemaker.modules.configs import SourceCode, InputData, Compute, OutputDataConfig
+
+# Download training data from GitHub release
+def download_training_data():
+    """Download california_housing_train.csv from GitHub release"""
+    
+    os.makedirs("data", exist_ok=True)
+    
+    url = "https://github.com/CodeSignal-Learn/course_building-aws-sagemaker/releases/download/v2/california_housing_train.csv"
+    
+    print("Downloading training data...")
+    response = requests.get(url)
+    response.raise_for_status()
+    
+    with open("data/california_housing_train.csv", 'wb') as f:
+        f.write(response.content)
+    
+    print("✅ Training data downloaded successfully!")
+
+# Download the training data
+download_training_data()
 
 # Initialize session and get configuration
 sagemaker_session = sagemaker.Session()
