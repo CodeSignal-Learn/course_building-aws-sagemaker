@@ -56,7 +56,7 @@ sklearn_estimator = SKLearn(
     sagemaker_session=sagemaker_session,
     output_path=MODEL_OUTPUT_PATH
 )
-sklearn_estimator.fit({'train': train_s3_uri}, wait=False)
+sklearn_estimator.fit({'train': train_s3_uri}, wait=True)
 
 # Train with ModelTrainer
 sklearn_image = sagemaker.image_uris.retrieve(
@@ -78,5 +78,5 @@ model_trainer = ModelTrainer(
 
 model_trainer.train(
     input_data_config=[InputData(channel_name="train", data_source=train_s3_uri)], 
-    wait=False
+    wait=True
 )
