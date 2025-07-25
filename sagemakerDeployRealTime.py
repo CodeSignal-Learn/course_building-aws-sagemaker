@@ -275,7 +275,7 @@ def deploy_realtime_endpoint(estimator):
         # Deploy as real-time endpoint
         predictor = estimator.deploy(
             initial_instance_count=1,
-            instance_type='ml.m5.large',
+            instance_type='ml.t3.medium',
             endpoint_name=endpoint_name,
             wait=True
         )
@@ -293,10 +293,9 @@ def main():
     deployed_endpoints = []
     
     try:
-        # Step 1: Download training data and pre-trained model
+        # Step 1: Download training data
         download_training_data()
-        download_pretrained_model()
-        
+
         # Step 2: Create entry point script
         create_entry_point_script()
 

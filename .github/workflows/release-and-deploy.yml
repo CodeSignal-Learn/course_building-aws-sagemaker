@@ -74,8 +74,9 @@ jobs:
           
           ### 🐍 **Source Code** (aws-sagemaker-course-source.tar.gz)
           - `train.py` - SageMaker training script for California Housing dataset
-          - `template_1.py` - Creates SageMaker training jobs (Estimator + ModelTrainer)
-          - `template_2.py` - Model deployment examples (local model + endpoints)
+          - `sagemekerTraining.py` - Creates SageMaker training jobs (Estimator + ModelTrainer)
+          - `sagemakerDeployServerless.py` - Model deployment examples (3 serverless endpoints)
+          - `sagemakerDeployRealTime.py` - Model deployment examples (3 serverless endpoints + 1 real-time endpoint)
           - `template_requirements.txt` - Python package dependencies to run templates
           
           ### 🚀 **Quick Start**
@@ -91,8 +92,9 @@ jobs:
           
           # Install dependencies and run
           pip install -r template_requirements.txt
-          python template_1.py  # Training jobs
-          python template_2.py  # Models deployment
+          python sagemakerTraining.py          # Training jobs
+          python sagemakerDeployServerless.py  # Models deployment
+          python sagemakerDeployRealTime.py    # Models deployment
           ```
           
           ### 📈 **Dataset Features**
