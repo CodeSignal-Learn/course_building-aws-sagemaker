@@ -275,7 +275,7 @@ def deploy_realtime_endpoint(estimator):
         # Deploy as real-time endpoint
         predictor = estimator.deploy(
             initial_instance_count=1,
-            instance_type='ml.t3.medium',
+            instance_type='ml.m5.large',
             endpoint_name=endpoint_name,
             wait=True
         )
