@@ -7,7 +7,7 @@ on:
       - 'utils/download_and_preprocess_datasets.py'
       - '.github/workflows/release-and-deploy.yml'
       - '*.py'
-      - 'requirements.txt'
+      - 'template_requirements.txt'
   workflow_dispatch:  # Allow manual trigger
 
 permissions:
@@ -50,7 +50,7 @@ jobs:
             --exclude='*.pyc' \
             *.py \
             utils/ \
-            requirements.txt \
+            template_requirements.txt \
             README.md
         ls -lh aws-sagemaker-course-source.tar.gz
         
@@ -78,7 +78,7 @@ jobs:
           - `template_1.py` - Creates SageMaker training jobs (Estimator + ModelTrainer)
           - `template_2.py` - Model deployment examples (local model + endpoints)
           - `utils/download_and_preprocess_datasets.py` - Data preprocessing utilities
-          - `requirements.txt` - Python package dependencies
+          - `template_requirements.txt` - Python package dependencies to run templates
           
           ### 🚀 **Quick Start**
           ```bash
@@ -92,7 +92,7 @@ jobs:
           tar -xzf aws-sagemaker-course-source.tar.gz
           
           # Install dependencies and run
-          pip install -r requirements.txt
+          pip install -r template_requirements.txt
           python template_1.py  # Training jobs
           python template_2.py  # Models deployment
           ```
