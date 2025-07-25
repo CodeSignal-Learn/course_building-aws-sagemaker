@@ -49,7 +49,6 @@ jobs:
             --exclude='__pycache__' \
             --exclude='*.pyc' \
             *.py \
-            utils/ \
             template_requirements.txt \
             README.md
         ls -lh aws-sagemaker-course-source.tar.gz
@@ -71,13 +70,12 @@ jobs:
           - `california_housing_test.csv` - Test set (**4,128 rows**)
           
           ### 🤖 **Pre-trained Model**
-          - `models/trained_model.joblib` - Ready-to-use LinearRegression model (**Simple scikit-learn model**)
+          - `trained_model.joblib` - Ready-to-use LinearRegression model (**Simple scikit-learn model**)
           
           ### 🐍 **Source Code** (aws-sagemaker-course-source.tar.gz)
           - `train.py` - SageMaker training script for California Housing dataset
           - `template_1.py` - Creates SageMaker training jobs (Estimator + ModelTrainer)
           - `template_2.py` - Model deployment examples (local model + endpoints)
-          - `utils/download_and_preprocess_datasets.py` - Data preprocessing utilities
           - `template_requirements.txt` - Python package dependencies to run templates
           
           ### 🚀 **Quick Start**
@@ -85,7 +83,7 @@ jobs:
           # Download everything
           wget https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/california-housing-data.tar.gz
           wget https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/aws-sagemaker-course-source.tar.gz
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/models/trained_model.joblib
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/trained_model.joblib
           
           # Extract files
           tar -xzf california-housing-data.tar.gz
@@ -153,7 +151,7 @@ jobs:
                 
                 <h3>🤖 Pre-trained Model</h3>
                 <ul class="file-list">
-                    <li><a href="https://github.com/CodeSignal-Learn/course_building-aws-sagemaker/releases/latest/download/models/trained_model.joblib">models/trained_model.joblib</a> <span class="size">(LinearRegression Model)</span></li>
+                    <li><a href="https://github.com/CodeSignal-Learn/course_building-aws-sagemaker/releases/latest/download/trained_model.joblib">trained_model.joblib</a> <span class="size">(LinearRegression Model)</span></li>
                 </ul>
             </div>
             
@@ -170,7 +168,7 @@ jobs:
         wget https://codesignal-learn.github.io/course_building-aws-sagemaker/california_housing_test.csv
         
         # Pre-trained model
-        wget https://github.com/CodeSignal-Learn/course_building-aws-sagemaker/releases/latest/download/models/trained_model.joblib</code></pre>
+        wget https://github.com/CodeSignal-Learn/course_building-aws-sagemaker/releases/latest/download/trained_model.joblib</code></pre>
             
             <h2>📊 Dataset Information</h2>
             <p><strong>Source:</strong> Scikit-learn California Housing Dataset</p>
