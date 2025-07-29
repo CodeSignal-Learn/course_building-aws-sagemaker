@@ -49,6 +49,7 @@ jobs:
             --exclude='__pycache__' \
             --exclude='*.pyc' \
             *.py \
+            models/ \
             template_requirements.txt \
             README.md
         ls -lh aws-sagemaker-course-source.tar.gz
@@ -74,6 +75,8 @@ jobs:
           
           ### 🐍 **Source Code** (aws-sagemaker-course-source.tar.gz)
           - `train.py` - SageMaker training script for California Housing dataset
+          - `entry_point.py` - SageMaker model inference entry point
+          - `common.py` - Shared functions and utilities used by all templates
           - `sagemakerTraining.py` - Creates SageMaker training jobs (Estimator + ModelTrainer)
           - `sagemakerDeployServerless.py` - Model deployment examples (3 serverless endpoints)
           - `sagemakerDeployRealTime.py` - Model deployment examples (3 serverless endpoints + 1 real-time endpoint)
