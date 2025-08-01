@@ -23,8 +23,11 @@ default_bucket = sagemaker_session.default_bucket()
 # Define the SageMaker execution role
 SAGEMAKER_ROLE = f"arn:aws:iam::{account_id}:role/SageMakerDefaultExecution"
 
-# Set a name for the SageMaker Pipeline
-PIPELINE_NAME = "california-housing-pipeline"
+# Set names for the SageMaker Pipelines
+PIPELINE_NAME_PREPROCESSING = "california-housing-preprocessing-pipeline"
+PIPELINE_NAME_TRAINING = "california-housing-training-pipeline"
+PIPELINE_NAME_EVALUATION = "california-housing-evaluation-pipeline"
+PIPELINE_NAME_FULL = "california-housing-conditional-pipeline"
 
 # Model package group name and endpoint name
 MODEL_PACKAGE_GROUP_NAME = "california-housing-pipeline-models"
@@ -152,42 +155,88 @@ condition_step = ConditionStep(
     else_steps=[]
 )
 
-# Create pipeline by combining all steps
-pipeline = Pipeline(
-    name=PIPELINE_NAME,
+# Create 4 different pipelines
+pipeline_1 = Pipeline(
+    name=PIPELINE_NAME_PREPROCESSING,
+    steps=[processing_step],
+    sagemaker_session=sagemaker_session
+)
+
+pipeline_2 = Pipeline(
+    name=PIPELINE_NAME_TRAINING,
+    steps=[processing_step, training_step],
+    sagemaker_session=sagemaker_session
+)
+
+pipeline_3 = Pipeline(
+    name=PIPELINE_NAME_EVALUATION,
+    steps=[processing_step, training_step, evaluation_step],
+    sagemaker_session=sagemaker_session
+)
+
+pipeline_4 = Pipeline(
+    name=PIPELINE_NAME_FULL,
     steps=[processing_step, training_step, evaluation_step, condition_step],
     sagemaker_session=sagemaker_session
 )
 
+pipelines = [
+    (pipeline_1, "Preprocessing only"),
+    (pipeline_2, "Preprocessing + Training"),
+    (pipeline_3, "Preprocessing + Training + Evaluation"),
+    (pipeline_4, "Full pipeline (Preprocessing + Training + Evaluation + Conditional Registration)")
+]
+
 try:
-    # Create or update pipeline
-    print("Creating/updating pipeline...")
-    pipeline.upsert(role_arn=SAGEMAKER_ROLE)
+    # Step 1: Create/update all pipelines
+    print(f"\n{'='*80}")
+    print("🔧 CREATING/UPDATING ALL PIPELINE DEFINITIONS")
+    print(f"{'='*80}")
     
-    # Start pipeline execution
-    print("Starting pipeline execution...")
-    execution = pipeline.start()
-    print(f"Pipeline execution ARN: {execution.arn}")
+    for i, (pipeline, description) in enumerate(pipelines, 1):
+        print(f"\n📋 Pipeline {i}: {description}")
+        print(f"   Creating/updating '{pipeline.name}'...")
+        pipeline.upsert(role_arn=SAGEMAKER_ROLE)
+        print(f"   ✅ Pipeline {i} definition ready!")
     
-    # Wait for pipeline to complete
-    print("Waiting for pipeline to complete...")
-    execution.wait()
+    # Step 2: Start all pipeline executions asynchronously (in parallel)
+    print(f"\n{'='*80}")
+    print("🚀 STARTING ALL PIPELINE EXECUTIONS IN PARALLEL")
+    print(f"{'='*80}")
     
-    # Get final status
-    execution_details = execution.describe()
+    executions = []
+    
+    for i, (pipeline, description) in enumerate(pipelines, 1):
+        print(f"Starting pipeline {i}: {pipeline.name}")
+        execution = pipeline.start()
+        executions.append(execution)
+    
+    print(f"All {len(pipelines)} pipelines started in parallel!")
+    
+    # Step 3: Wait only for the conditional pipeline (longest/most important)
+    conditional_execution = executions[-1]  # Last pipeline (conditional/full)
+    
+    print(f"\n⏳ Waiting for conditional pipeline to complete...")
+    conditional_execution.wait()
+    
+    # Check conditional pipeline status
+    execution_details = conditional_execution.describe()
     status = execution_details['PipelineExecutionStatus']
-    print(f"Pipeline execution completed with status: {status}")
     
-    # Check if pipeline succeeded
     if status != 'Succeeded':
-        print(f"Pipeline failed with status: {status}")
+        print(f"❌ Conditional pipeline failed with status: {status}")
         exit(1)
     
-    # Deploy the model if pipeline succeeded
-    print("\nPipeline succeeded! Proceeding with deployment...")
+    print(f"✅ Conditional pipeline completed successfully!")
     
-    # Get the training job name from the pipeline execution
-    steps = execution.list_steps()
+    # Deploy the model from the conditional pipeline
+    print(f"\n{'='*80}")
+    print("🚀 DEPLOYING MODEL FROM CONDITIONAL PIPELINE")
+    print(f"{'='*80}")
+    print("📡 Extracting model artifacts from conditional pipeline...")
+    
+    # Get the training job name from the conditional pipeline execution
+    steps = conditional_execution.list_steps()
     training_job_name = None
     
     for step in steps:
@@ -198,16 +247,16 @@ try:
             break
     
     if not training_job_name:
-        print("Could not find training job name from pipeline execution")
+        print("❌ Could not find training job name from conditional pipeline execution")
         exit(1)
     
-    print(f"Found training job: {training_job_name}")
+    print(f"✅ Found training job: {training_job_name}")
     
     # Get model artifacts from the completed training job
     training_job_details = sagemaker_session.describe_training_job(training_job_name)
     model_data = training_job_details['ModelArtifacts']['S3ModelArtifacts']
 
-    # Create SKLearnModel with explicit configuration (same as working deployments)
+    # Create SKLearnModel with explicit configuration
     model = SKLearnModel(
         model_data=model_data,
         role=SAGEMAKER_ROLE,
@@ -224,15 +273,17 @@ try:
     )
     
     # Deploy the model as a serverless endpoint
-    print(f"Deploying model to serverless endpoint '{ENDPOINT_NAME}'...")
+    print(f"🔄 Deploying model to serverless endpoint '{ENDPOINT_NAME}'...")
     predictor = model.deploy(
         serverless_inference_config=serverless_config,
         endpoint_name=ENDPOINT_NAME,
         wait=True
     )
+    print(f"✅ Model deployed successfully!")
     
-    print(f"\n✅ Pipeline execution and deployment completed successfully!")
-    print(f"Model deployed to endpoint '{ENDPOINT_NAME}'")
+    print(f"\n🎉 ALL PIPELINES EXECUTED AND MODEL DEPLOYED SUCCESSFULLY!")
+    print(f"📊 Created {len(pipelines)} pipelines in parallel")
+    print(f"🚀 Model deployed to endpoint '{ENDPOINT_NAME}'")
     
 except Exception as e:
     print(f"Error: {e}")
