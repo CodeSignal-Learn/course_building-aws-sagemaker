@@ -50,6 +50,7 @@ jobs:
             --exclude='*.pyc' \
             *.py \
             models/ \
+            pipeline/ \
             template_requirements.txt \
             README.md
         ls -lh aws-sagemaker-course-source.tar.gz
@@ -80,6 +81,7 @@ jobs:
           - `sagemakerTraining.py` - Creates SageMaker training jobs (Estimator + ModelTrainer)
           - `sagemakerDeployServerless.py` - Model deployment examples (3 serverless endpoints)
           - `sagemakerDeployRealTime.py` - Model deployment examples (3 serverless endpoints + 1 real-time endpoint)
+          - `sagemakerPipeline.py` - Executes 4 pipelines and deploys 1 serverless endpoint
           - `template_requirements.txt` - Python package dependencies to run templates
           
           ### 🚀 **Quick Start**
@@ -98,6 +100,7 @@ jobs:
           python sagemakerTraining.py          # Training jobs
           python sagemakerDeployServerless.py  # Models deployment
           python sagemakerDeployRealTime.py    # Models deployment
+          python sagemakerPipeline.py          # Pipeline execution
           ```
           
           ### 📈 **Dataset Features**
