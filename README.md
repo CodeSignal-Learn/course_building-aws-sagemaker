@@ -1,6 +1,6 @@
 # Enterprise Machine Learning with Amazon SageMaker
 
-A comprehensive repository containing templates, scripts, and resources for the **"Enterprise Machine Learning with Amazon SageMaker"** learning path. This repository provides hands-on materials for setting up AWS SageMaker training jobs and deploying machine learning endpoints across multiple courses.
+A comprehensive repository containing templates, scripts, and resources for the **"Enterprise Machine Learning with Amazon SageMaker"** learning path. This repository provides hands-on materials for setting up AWS SageMaker training jobs, pipelines and deploying machine learning endpoints across multiple courses.
 
 ## 🎯 Purpose
 
@@ -8,6 +8,7 @@ This repository is designed to set up resources for AWS accounts used in the Sag
 
 - **Training Templates**: Launch SageMaker training jobs using different approaches
 - **Deployment Templates**: Deploy models to both serverless and real-time endpoints  
+- **Pipeline Templates**: Creates SageMaker pipelines and deploy approved model
 - **Supporting Scripts**: Training and inference scripts for the California Housing dataset
 - **Utility Functions**: Helper scripts for data processing and model management
 - **Automated Data Pipeline**: GitHub Actions for processing and distributing datasets
@@ -21,10 +22,11 @@ This repository is designed to set up resources for AWS accounts used in the Sag
 | `sagemakerTraining.py` | Launches Estimator + ModelTrainer training jobs | Course 2 | Training job creation and management |
 | `sagemakerDeployServerless.py` | Training jobs + 3 serverless endpoints | Course 3 | Serverless inference deployment |
 | `sagemakerDeployRealTime.py` | All above + real-time endpoint | Course 3 | Real-time inference with persistent instances |
+| `sagemakerPipeline.py` | Creates 4 ML pipeline templates + serverless endpoint | Course 4 | Pipeline orchestration |
 
-### 🔧 Core Components
+### 🔧 Template Components
 
-- **`common.py`**: Shared helper functions for all templates including:
+- **`common.py`**: Shared helper functions for templates including:
   - Data download and S3 upload utilities
   - Training job orchestration (Estimator & ModelTrainer)
   - Endpoint deployment functions (serverless & real-time)
@@ -32,6 +34,8 @@ This repository is designed to set up resources for AWS accounts used in the Sag
 
 - **`train.py`**: SageMaker training script for the California Housing dataset
 - **`entry_point.py`**: Model inference entry point for deployed endpoints
+
+- **`pipeline/`**: Folder with scripts used by the pipeline template
 
 ### 📁 Data & Models
 
@@ -100,6 +104,14 @@ python sagemakerDeployRealTime.py
 ```
 - Runs all training and serverless deployments
 - Deploys additional real-time endpoint with `ml.m5.large` instance
+
+#### Course 4: SageMaker Pipelines
+```bash
+python sagemakerPipeline.py
+```
+- Creates 4 pipelines with progressive complexity
+- Executes all pipelines in parallel for maximum efficiency  
+- Deploys erverless endpoint from conditional pipeline
 
 ## 🔄 Automated Data Pipeline
 
