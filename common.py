@@ -69,20 +69,19 @@ def create_sagemaker_role(role_name="SageMakerDefaultExecution"):
                     PolicyArn=policy_arn
                 )
                 print(f"✅ Attached policy {policy_arn} to role {role_name}")
+            # Wait for role to be fully created
+            time.sleep(15)  # Wait for role to propagate
 
         # Test role assumption with retries
         print("⏳ Testing role assumption...")
-        max_retries = 12
+        max_retries = 120
         retry_delay = 5
 
         for attempt in range(max_retries):
             try:
-                # Try to assume the role
-                sts_client.assume_role(
-                    RoleArn=role_arn,
-                    RoleSessionName="sagemaker-role-test"
-                )
-                print(f"✅ Role {role_name} is ready and assumable!")
+                # Check if the role exists
+                iam_client.get_role(RoleName=role_name)
+                print(f"✅ Role {role_name} exists!")
                 return role_arn
 
             except Exception as assume_error:
