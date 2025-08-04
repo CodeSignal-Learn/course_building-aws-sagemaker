@@ -8,7 +8,7 @@ from common import (
 
 def main():
     """Main execution function"""
-    
+
     try:
         # Step 1: Download training data
         download_training_data()
@@ -23,14 +23,13 @@ def main():
         train_s3_uri = upload_data_to_s3(sagemaker_session, default_bucket)
 
         # Step 4: Set up configuration
-        sagemaker_role = f"arn:aws:iam::{account_id}:role/SageMakerDefaultExecution"
         model_output_path = f"s3://{default_bucket}/models/california-housing/"
 
         # Step 5: Run Estimator training job
-        sklearn_estimator = run_estimator_job(train_s3_uri, sagemaker_role, model_output_path, sagemaker_session)
+        sklearn_estimator = run_estimator_job(train_s3_uri, model_output_path, sagemaker_session)
 
         # Step 6: Run ModelTrainer training job
-        model_trainer = run_modeltrainer_job(train_s3_uri, sagemaker_role, model_output_path, region)
+        model_trainer = run_modeltrainer_job(train_s3_uri, model_output_path, region)
 
         print("🎉 All training jobs completed successfully!")
     except Exception as e:
