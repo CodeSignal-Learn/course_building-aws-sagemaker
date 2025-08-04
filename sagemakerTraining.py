@@ -8,7 +8,7 @@ from common import (
 
 def main():
     """Main execution function"""
-    
+
     try:
         # Step 1: Download training data
         download_training_data()

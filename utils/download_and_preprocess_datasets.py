@@ -17,7 +17,7 @@ data['RoomsPerHousehold'] = data['AveRooms'] / data['AveOccup']
 
 # Select relevant features for modeling
 feature_columns = [
-    'MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 
+    'MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population',
     'AveOccup', 'Latitude', 'Longitude', 'RoomsPerHousehold'
 ]
 X = data[feature_columns]

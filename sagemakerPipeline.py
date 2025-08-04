@@ -192,66 +192,66 @@ try:
     print(f"\n{'='*80}")
     print("🔧 CREATING/UPDATING ALL PIPELINE DEFINITIONS")
     print(f"{'='*80}")
-    
+
     for i, (pipeline, description) in enumerate(pipelines, 1):
         print(f"\n📋 Pipeline {i}: {description}")
         print(f"   Creating/updating '{pipeline.name}'...")
         pipeline.upsert(role_arn=SAGEMAKER_ROLE)
         print(f"   ✅ Pipeline {i} definition ready!")
-    
+
     # Step 2: Start all pipeline executions asynchronously (in parallel)
     print(f"\n{'='*80}")
     print("🚀 STARTING ALL PIPELINE EXECUTIONS IN PARALLEL")
     print(f"{'='*80}")
-    
+
     executions = []
-    
+
     for i, (pipeline, description) in enumerate(pipelines, 1):
         print(f"Starting pipeline {i}: {pipeline.name}")
         execution = pipeline.start()
         executions.append(execution)
-    
+
     print(f"All {len(pipelines)} pipelines started in parallel!")
-    
+
     # Step 3: Wait only for the conditional pipeline (longest/most important)
     conditional_execution = executions[-1]  # Last pipeline (conditional/full)
-    
+
     print(f"\n⏳ Waiting for conditional pipeline to complete...")
     conditional_execution.wait()
-    
+
     # Check conditional pipeline status
     execution_details = conditional_execution.describe()
     status = execution_details['PipelineExecutionStatus']
-    
+
     if status != 'Succeeded':
         print(f"❌ Conditional pipeline failed with status: {status}")
         exit(1)
-    
+
     print(f"✅ Conditional pipeline completed successfully!")
-    
+
     # Deploy the model from the conditional pipeline
     print(f"\n{'='*80}")
     print("🚀 DEPLOYING MODEL FROM CONDITIONAL PIPELINE")
     print(f"{'='*80}")
     print("📡 Extracting model artifacts from conditional pipeline...")
-    
+
     # Get the training job name from the conditional pipeline execution
     steps = conditional_execution.list_steps()
     training_job_name = None
-    
+
     for step in steps:
         if step.get('StepName') == 'TrainModel':
             metadata = step.get('Metadata', {})
             training_job = metadata.get('TrainingJob', {})
             training_job_name = training_job.get('Arn', '').split('/')[-1]
             break
-    
+
     if not training_job_name:
         print("❌ Could not find training job name from conditional pipeline execution")
         exit(1)
-    
+
     print(f"✅ Found training job: {training_job_name}")
-    
+
     # Get model artifacts from the completed training job
     training_job_details = sagemaker_session.describe_training_job(training_job_name)
     model_data = training_job_details['ModelArtifacts']['S3ModelArtifacts']
@@ -265,13 +265,13 @@ try:
         py_version='py3',
         sagemaker_session=sagemaker_session
     )
-    
+
     # Configure serverless inference
     serverless_config = ServerlessInferenceConfig(
         memory_size_in_mb=2048,
         max_concurrency=5
     )
-    
+
     # Deploy the model as a serverless endpoint
     print(f"🔄 Deploying model to serverless endpoint '{ENDPOINT_NAME}'...")
     predictor = model.deploy(
@@ -280,10 +280,10 @@ try:
         wait=True
     )
     print(f"✅ Model deployed successfully!")
-    
+
     print(f"\n🎉 ALL PIPELINES EXECUTED AND MODEL DEPLOYED SUCCESSFULLY!")
     print(f"📊 Created {len(pipelines)} pipelines in parallel")
     print(f"🚀 Model deployed to endpoint '{ENDPOINT_NAME}'")
-    
+
 except Exception as e:
     print(f"Error: {e}")

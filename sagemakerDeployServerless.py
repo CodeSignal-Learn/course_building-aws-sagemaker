@@ -14,9 +14,9 @@ from common import (
 
 def main():
     """Main execution function"""
-    
+
     deployed_endpoints = []
-    
+
     try:
         # Step 1: Download training data and pre-trained model
         download_training_data()
@@ -30,7 +30,7 @@ def main():
 
         # Step 3: Upload data to S3
         train_s3_uri = upload_data_to_s3(sagemaker_session, default_bucket)
-        
+
         # Step 4: Package and upload local model
         local_model_uri = package_and_upload_local_model(sagemaker_session, default_bucket)
 
@@ -45,25 +45,25 @@ def main():
         model_trainer = run_modeltrainer_job(train_s3_uri, sagemaker_role, model_output_path, region)
 
         print("\n🎉 All training jobs completed successfully!")
-        
+
         # Step 8: Deploy endpoints
         print("\n📡 Starting endpoint deployments...")
-        
+
         # Deploy local model endpoint
         endpoint_name = deploy_local_model_endpoint(local_model_uri, sagemaker_role, sagemaker_session)
         if endpoint_name:
             deployed_endpoints.append(("Local Model Serverless", endpoint_name))
-        
+
         # Deploy estimator endpoint
         endpoint_name = deploy_estimator_endpoint(sklearn_estimator)
         if endpoint_name:
             deployed_endpoints.append(("Estimator Serverless", endpoint_name))
-        
+
         # Deploy ModelTrainer endpoint
         endpoint_name = deploy_modeltrainer_endpoint(model_trainer, sagemaker_role, sagemaker_session)
         if endpoint_name:
             deployed_endpoints.append(("ModelTrainer Serverless", endpoint_name))
-        
+
         # Summary
         print("\n🎯 Deployment Summary:")
         print("=" * 60)
@@ -71,7 +71,7 @@ def main():
             print(f"{endpoint_type:25} | {name}")
         print("=" * 60)
         print(f"Total endpoints deployed: {len(deployed_endpoints)}/3")
-        
+
     except Exception as e:
         print(f"\n❌ Execution failed with error: {str(e)}")
         raise
