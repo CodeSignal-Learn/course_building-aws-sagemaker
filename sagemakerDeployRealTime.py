@@ -58,14 +58,13 @@ def main():
         local_model_uri = package_and_upload_local_model(sagemaker_session, default_bucket)
 
         # Step 5: Set up configuration
-        sagemaker_role = f"arn:aws:iam::{account_id}:role/SageMakerDefaultExecution"
         model_output_path = f"s3://{default_bucket}/models/california-housing/"
 
         # Step 6: Run Estimator training job
-        sklearn_estimator = run_estimator_job(train_s3_uri, sagemaker_role, model_output_path, sagemaker_session)
+        sklearn_estimator = run_estimator_job(train_s3_uri, model_output_path, sagemaker_session)
 
         # Step 7: Run ModelTrainer training job
-        model_trainer = run_modeltrainer_job(train_s3_uri, sagemaker_role, model_output_path, region)
+        model_trainer = run_modeltrainer_job(train_s3_uri, model_output_path, region)
 
         print("\n🎉 All training jobs completed successfully!")
 
@@ -73,7 +72,7 @@ def main():
         print("\n📡 Starting endpoint deployments...")
 
         # Deploy local model endpoint
-        endpoint_name = deploy_local_model_endpoint(local_model_uri, sagemaker_role, sagemaker_session)
+        endpoint_name = deploy_local_model_endpoint(local_model_uri, sagemaker_session)
         if endpoint_name:
             deployed_endpoints.append(("Local Model Serverless", endpoint_name))
 
@@ -83,7 +82,7 @@ def main():
             deployed_endpoints.append(("Estimator Serverless", endpoint_name))
 
         # Deploy ModelTrainer endpoint
-        endpoint_name = deploy_modeltrainer_endpoint(model_trainer, sagemaker_role, sagemaker_session)
+        endpoint_name = deploy_modeltrainer_endpoint(model_trainer, sagemaker_session)
         if endpoint_name:
             deployed_endpoints.append(("ModelTrainer Serverless", endpoint_name))
 
