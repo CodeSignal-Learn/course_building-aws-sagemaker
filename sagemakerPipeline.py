@@ -1,6 +1,7 @@
 from common import (
     download_raw_data,
     upload_data_to_s3,
+    create_sagemaker_role
 )
 
 import sagemaker
@@ -24,14 +25,11 @@ sagemaker_session = sagemaker.Session()
 # Create a PipelineSession for pipeline-related operations
 pipeline_session = PipelineSession()
 
-# Retrieve the AWS account ID for constructing resource ARNs
-account_id = sagemaker_session.account_id()
-
 # Get the default S3 bucket
 default_bucket = sagemaker_session.default_bucket()
 
-# Define the SageMaker execution role
-SAGEMAKER_ROLE = f"arn:aws:iam::{account_id}:role/SageMakerDefaultExecution"
+# Create and ensure SageMaker execution role is ready
+SAGEMAKER_ROLE = create_sagemaker_role()
 
 # Set names for the SageMaker Pipelines
 PIPELINE_NAME_PREPROCESSING = "california-housing-preprocessing-pipeline"
