@@ -1,6 +1,9 @@
 # Data files
 data/
 
+# Debug files
+cleanup.py
+
 # Python cache files
 __pycache__/
 
