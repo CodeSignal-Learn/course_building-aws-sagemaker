@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 if __name__ == "__main__":
     # Read input data
-    input_data_path = "/opt/ml/processing/input/california_housing_train.csv"
+    input_data_path = "/opt/ml/processing/input/california_housing.csv"
     df = pd.read_csv(input_data_path)
 
     print(f"Processing {len(df)} samples...")

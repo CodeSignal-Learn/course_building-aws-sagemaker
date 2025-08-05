@@ -1,5 +1,11 @@
+from common import (
+    download_raw_data,
+    upload_data_to_s3,
+)
+
 import sagemaker
 from sagemaker.workflow.pipeline import Pipeline
+from sagemaker.workflow.pipeline_context import PipelineSession
 from sagemaker.workflow.steps import ProcessingStep, TrainingStep
 from sagemaker.workflow.step_collections import RegisterModel
 from sagemaker.workflow.conditions import ConditionGreaterThanOrEqualTo
@@ -11,8 +17,11 @@ from sagemaker.sklearn.processing import SKLearnProcessor
 from sagemaker.sklearn.model import SKLearnModel
 from sagemaker.serverless import ServerlessInferenceConfig
 
-# Create a SageMaker session
+# Create a regular SageMaker session for non-pipeline operations
 sagemaker_session = sagemaker.Session()
+
+# Create a PipelineSession for pipeline-related operations
+pipeline_session = PipelineSession()
 
 # Retrieve the AWS account ID for constructing resource ARNs
 account_id = sagemaker_session.account_id()
@@ -39,7 +48,7 @@ processor = SKLearnProcessor(
     role=SAGEMAKER_ROLE,
     instance_type="ml.m5.large",
     instance_count=1,
-    sagemaker_session=sagemaker_session
+    sagemaker_session=pipeline_session
 )
 
 processing_step = ProcessingStep(
@@ -47,7 +56,7 @@ processing_step = ProcessingStep(
     processor=processor,
     inputs=[
         sagemaker.processing.ProcessingInput(
-            source=f"s3://{default_bucket}/datasets/california_housing_train.csv",
+            source=f"s3://{default_bucket}/datasets/california_housing.csv",
             destination="/opt/ml/processing/input"
         )
     ],
@@ -72,7 +81,7 @@ estimator = SKLearn(
     instance_count=1,
     framework_version="1.2-1",
     py_version="py3",
-    sagemaker_session=sagemaker_session
+    sagemaker_session=pipeline_session
 )
 
 training_step = TrainingStep(
@@ -91,7 +100,7 @@ evaluation_processor = SKLearnProcessor(
     role=SAGEMAKER_ROLE,
     instance_type="ml.m5.large",
     instance_count=1,
-    sagemaker_session=sagemaker_session
+    sagemaker_session=pipeline_session
 )
 
 # Define property file for evaluation metrics
@@ -188,7 +197,11 @@ pipelines = [
 ]
 
 try:
-    # Step 1: Create/update all pipelines
+    # Step 1: Download and upload raw data
+    download_raw_data()
+    upload_data_to_s3(sagemaker_session, default_bucket, "data/california_housing.csv")
+
+    # Step 2: Create/update all pipelines
     print(f"\n{'='*80}")
     print("🔧 CREATING/UPDATING ALL PIPELINE DEFINITIONS")
     print(f"{'='*80}")
@@ -199,7 +212,7 @@ try:
         pipeline.upsert(role_arn=SAGEMAKER_ROLE)
         print(f"   ✅ Pipeline {i} definition ready!")
 
-    # Step 2: Start all pipeline executions asynchronously (in parallel)
+    # Step 3: Start all pipeline executions asynchronously (in parallel)
     print(f"\n{'='*80}")
     print("🚀 STARTING ALL PIPELINE EXECUTIONS IN PARALLEL")
     print(f"{'='*80}")
@@ -213,7 +226,7 @@ try:
 
     print(f"All {len(pipelines)} pipelines started in parallel!")
 
-    # Step 3: Wait only for the conditional pipeline (longest/most important)
+    # Step 4: Wait only for the conditional pipeline (longest/most important)
     conditional_execution = executions[-1]  # Last pipeline (conditional/full)
 
     print(f"\n⏳ Waiting for conditional pipeline to complete...")
