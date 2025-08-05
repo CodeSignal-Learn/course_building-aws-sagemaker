@@ -1,5 +1,12 @@
+from common import (
+    download_raw_data,
+    upload_data_to_s3,
+    create_sagemaker_role
+)
+
 import sagemaker
 from sagemaker.workflow.pipeline import Pipeline
+from sagemaker.workflow.pipeline_context import PipelineSession
 from sagemaker.workflow.steps import ProcessingStep, TrainingStep
 from sagemaker.workflow.step_collections import RegisterModel
 from sagemaker.workflow.conditions import ConditionGreaterThanOrEqualTo
@@ -9,19 +16,20 @@ from sagemaker.workflow.properties import PropertyFile
 from sagemaker.sklearn.estimator import SKLearn
 from sagemaker.sklearn.processing import SKLearnProcessor
 from sagemaker.sklearn.model import SKLearnModel
+from sagemaker.model import ModelPackage
 from sagemaker.serverless import ServerlessInferenceConfig
 
-# Create a SageMaker session
+# Create a regular SageMaker session for non-pipeline operations
 sagemaker_session = sagemaker.Session()
 
-# Retrieve the AWS account ID for constructing resource ARNs
-account_id = sagemaker_session.account_id()
+# Create a PipelineSession for pipeline-related operations
+pipeline_session = PipelineSession()
 
 # Get the default S3 bucket
 default_bucket = sagemaker_session.default_bucket()
 
-# Define the SageMaker execution role
-SAGEMAKER_ROLE = f"arn:aws:iam::{account_id}:role/SageMakerDefaultExecution"
+# Create and ensure SageMaker execution role is ready
+SAGEMAKER_ROLE = create_sagemaker_role()
 
 # Set names for the SageMaker Pipelines
 PIPELINE_NAME_PREPROCESSING = "california-housing-preprocessing-pipeline"
@@ -39,7 +47,7 @@ processor = SKLearnProcessor(
     role=SAGEMAKER_ROLE,
     instance_type="ml.m5.large",
     instance_count=1,
-    sagemaker_session=sagemaker_session
+    sagemaker_session=pipeline_session
 )
 
 processing_step = ProcessingStep(
@@ -47,7 +55,7 @@ processing_step = ProcessingStep(
     processor=processor,
     inputs=[
         sagemaker.processing.ProcessingInput(
-            source=f"s3://{default_bucket}/datasets/california_housing_train.csv",
+            source=f"s3://{default_bucket}/datasets/california_housing.csv",
             destination="/opt/ml/processing/input"
         )
     ],
@@ -72,7 +80,7 @@ estimator = SKLearn(
     instance_count=1,
     framework_version="1.2-1",
     py_version="py3",
-    sagemaker_session=sagemaker_session
+    sagemaker_session=pipeline_session
 )
 
 training_step = TrainingStep(
@@ -91,7 +99,7 @@ evaluation_processor = SKLearnProcessor(
     role=SAGEMAKER_ROLE,
     instance_type="ml.m5.large",
     instance_count=1,
-    sagemaker_session=sagemaker_session
+    sagemaker_session=pipeline_session
 )
 
 # Define property file for evaluation metrics
@@ -124,11 +132,20 @@ evaluation_step = ProcessingStep(
     property_files=[evaluation_report]
 )
 
-# Step 4: Conditional Model Registration with automatic approval
+# Step 4: Create SKLearnModel for registration
+inference_model = SKLearnModel(
+    model_data=training_step.properties.ModelArtifacts.S3ModelArtifacts,
+    role=SAGEMAKER_ROLE,
+    entry_point='pipeline/entry_point.py',
+    framework_version='1.2-1',
+    py_version='py3',
+    sagemaker_session=pipeline_session
+)
+
+# Step 5: Conditional Model Registration with automatic approval
 register_step = RegisterModel(
     name="RegisterModel",
-    estimator=estimator,
-    model_data=training_step.properties.ModelArtifacts.S3ModelArtifacts,
+    model=inference_model,
     content_types=["text/csv"],
     response_types=["text/csv"],
     inference_instances=["ml.m5.large"],
@@ -188,7 +205,11 @@ pipelines = [
 ]
 
 try:
-    # Step 1: Create/update all pipelines
+    # Step 1: Download and upload raw data
+    download_raw_data()
+    upload_data_to_s3(sagemaker_session, default_bucket, "data/california_housing.csv")
+
+    # Step 2: Create/update all pipelines
     print(f"\n{'='*80}")
     print("🔧 CREATING/UPDATING ALL PIPELINE DEFINITIONS")
     print(f"{'='*80}")
@@ -199,7 +220,7 @@ try:
         pipeline.upsert(role_arn=SAGEMAKER_ROLE)
         print(f"   ✅ Pipeline {i} definition ready!")
 
-    # Step 2: Start all pipeline executions asynchronously (in parallel)
+    # Step 3: Start all pipeline executions asynchronously (in parallel)
     print(f"\n{'='*80}")
     print("🚀 STARTING ALL PIPELINE EXECUTIONS IN PARALLEL")
     print(f"{'='*80}")
@@ -213,7 +234,7 @@ try:
 
     print(f"All {len(pipelines)} pipelines started in parallel!")
 
-    # Step 3: Wait only for the conditional pipeline (longest/most important)
+    # Step 4: Wait only for the conditional pipeline (longest/most important)
     conditional_execution = executions[-1]  # Last pipeline (conditional/full)
 
     print(f"\n⏳ Waiting for conditional pipeline to complete...")
@@ -229,49 +250,48 @@ try:
 
     print(f"✅ Conditional pipeline completed successfully!")
 
-    # Deploy the model from the conditional pipeline
+    # Deploy the latest approved model package from the Model Registry
     print(f"\n{'='*80}")
-    print("🚀 DEPLOYING MODEL FROM CONDITIONAL PIPELINE")
+    print("🚀 DEPLOYING LATEST APPROVED MODEL FROM REGISTRY")
     print(f"{'='*80}")
-    print("📡 Extracting model artifacts from conditional pipeline...")
+    print("📡 Finding latest approved model package from Model Registry...")
 
-    # Get the training job name from the conditional pipeline execution
-    steps = conditional_execution.list_steps()
-    training_job_name = None
+    # Get the SageMaker client from the session
+    sagemaker_client = sagemaker_session.sagemaker_client
+    
+    # List approved model packages from the group, sorted by creation time
+    response = sagemaker_client.list_model_packages(
+        ModelPackageGroupName=MODEL_PACKAGE_GROUP_NAME,
+        ModelApprovalStatus='Approved',
+        SortBy='CreationTime',
+        SortOrder='Descending',
+        MaxResults=1
+    )
+    
+    # Extract the model package list from the response
+    model_packages = response.get('ModelPackageSummaryList', [])
 
-    for step in steps:
-        if step.get('StepName') == 'TrainModel':
-            metadata = step.get('Metadata', {})
-            training_job = metadata.get('TrainingJob', {})
-            training_job_name = training_job.get('Arn', '').split('/')[-1]
-            break
-
-    if not training_job_name:
-        print("❌ Could not find training job name from conditional pipeline execution")
+    if not model_packages:
+        print("❌ No approved model packages found in the Model Registry")
         exit(1)
 
-    print(f"✅ Found training job: {training_job_name}")
+    # Get the ARN of the latest approved model package
+    model_package_arn = model_packages[0]['ModelPackageArn']
+    print(f"✅ Found latest approved model package: {model_package_arn}")
 
-    # Get model artifacts from the completed training job
-    training_job_details = sagemaker_session.describe_training_job(training_job_name)
-    model_data = training_job_details['ModelArtifacts']['S3ModelArtifacts']
-
-    # Create SKLearnModel with explicit configuration
-    model = SKLearnModel(
-        model_data=model_data,
-        role=SAGEMAKER_ROLE,
-        entry_point='pipeline/entry_point.py',
-        framework_version='1.2-1',
-        py_version='py3',
+    # Create a ModelPackage object from the ARN
+    model = ModelPackage(
+        role=SAGEMAKER_ROLE,          
+        model_package_arn=model_package_arn,
         sagemaker_session=sagemaker_session
     )
-
-    # Configure serverless inference
+    
+    # Configure serverless inference with memory and concurrency limits
     serverless_config = ServerlessInferenceConfig(
         memory_size_in_mb=2048,
-        max_concurrency=5
+        max_concurrency=10
     )
-
+    
     # Deploy the model as a serverless endpoint
     print(f"🔄 Deploying model to serverless endpoint '{ENDPOINT_NAME}'...")
     predictor = model.deploy(
@@ -281,9 +301,9 @@ try:
     )
     print(f"✅ Model deployed successfully!")
 
-    print(f"\n🎉 ALL PIPELINES EXECUTED AND MODEL DEPLOYED SUCCESSFULLY!")
+    print(f"\n🎉 ALL PIPELINES EXECUTED AND MODEL DEPLOYED FROM REGISTRY!")
     print(f"📊 Created {len(pipelines)} pipelines in parallel")
-    print(f"🚀 Model deployed to endpoint '{ENDPOINT_NAME}'")
+    print(f"🏆 Latest approved model from registry deployed to endpoint '{ENDPOINT_NAME}'")
 
 except Exception as e:
     print(f"Error: {e}")

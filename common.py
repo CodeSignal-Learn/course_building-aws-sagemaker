@@ -12,6 +12,7 @@ from sagemaker.modules.train import ModelTrainer
 from sagemaker.modules.configs import SourceCode, InputData, Compute, OutputDataConfig
 
 # Constants
+RAW_DATA_URL = "https://github.com/CodeSignal-Learn/course_building-aws-sagemaker/releases/latest/download/california_housing.csv"
 TRAINING_DATA_URL = "https://github.com/CodeSignal-Learn/course_building-aws-sagemaker/releases/latest/download/california_housing_train.csv"
 PRETRAINED_MODEL_URL = "https://github.com/CodeSignal-Learn/course_building-aws-sagemaker/releases/latest/download/trained_model.joblib"
 
@@ -97,6 +98,20 @@ def create_sagemaker_role(role_name="SageMakerDefaultExecution"):
     except Exception as e:
         print(f"❌ Error creating SageMaker role: {e}")
         raise
+
+def download_raw_data():
+    """Download california_housing.csv from GitHub release"""
+
+    os.makedirs("data", exist_ok=True)
+
+    print("Downloading raw data...")
+    response = requests.get(RAW_DATA_URL)
+    response.raise_for_status()
+
+    with open("data/california_housing.csv", 'wb') as f:
+        f.write(response.content)
+
+    print("✅ Raw data downloaded successfully!")
 
 def download_training_data():
     """Download california_housing_train.csv from GitHub release"""
