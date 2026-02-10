@@ -2,3 +2,4 @@ boto3==1.39.7
 sagemaker==2.247.0
 requests==2.32.3
 joblib==1.4.2
+pytz==2025.2
